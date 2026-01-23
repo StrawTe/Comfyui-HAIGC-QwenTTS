@@ -8,19 +8,7 @@ ComfyUI 自定义节点，集成 Qwen3-TTS（通义千问语音合成）模型�
 
 ## 原开源项目
 
-`https://github.com/QwenLM/Qwen3-TTS`
-
-## 工作流体验地址
-
-## `https://www.runninghub.cn/post/2014536001888198657/inviteCode=rh-v1127`  👈点击跳转
-
-## 推荐ComfyUI云平台：
-
-## 已注册还未绑定邀请码可绑定邀请码：rh-v1127 赠送1000RH币
-
-## `https://www.runninghub.cn/user-center/1887871050510716930/webapp?inviteCode=rh-v1127`  👈点击跳转
-
-## `https://pan.quark.cn/s/a56c5a6ec9c2`  👈点击跳转
+[https://github.com/QwenLM/Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS)
 
 ## 功能特性
 
@@ -47,7 +35,7 @@ pip install torch torchaudio transformers librosa soundfile accelerate
 
 将 Qwen3-TTS 模型下载到以下目录：
 
-模型下载地址：`https://huggingface.co/collections/Qwen/qwen3-tts`
+模型下载地址：[https://huggingface.co/collections/Qwen/qwen3-tts](https://huggingface.co/collections/Qwen/qwen3-tts)
 
 本地存放模型路径：`ComfyUI\models\qwen-tts`
 
@@ -267,3 +255,10 @@ ComfyUI/
 - 初始版本
 - 支持声音设计、声音克隆和自定义声音功能
 - 移除模型自动下载功能，固定模型读取路径
+
+## 相关链接
+
+- 工作流体验地址：[https://www.runninghub.cn/post/2014536001888198657/inviteCode=rh-v1127](https://www.runninghub.cn/post/2014536001888198657/inviteCode=rh-v1127)
+- 推荐ComfyUI云平台：[https://www.runninghub.cn/user-center/1887871050510716930/webapp?inviteCode=rh-v1127](https://www.runninghub.cn/user-center/1887871050510716930/webapp?inviteCode=rh-v1127)
+- 已注册还未绑定邀请码可绑定邀请码：rh-v1127 赠送1000RH币
+- 资源下载：[https://pan.quark.cn/s/a56c5a6ec9c2](https://pan.quark.cn/s/a56c5a6ec9c2)
