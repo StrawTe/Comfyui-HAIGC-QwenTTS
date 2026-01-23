@@ -1,5 +1,7 @@
 # ComfyUI HAIGC Qwen3TTS
 
+[English](README_EN.md)
+
 ComfyUI 自定义节点，集成 Qwen3-TTS（通义千问语音合成）模型，支持声音设计、声音克隆和自定义声音生成。
 
 ## 作者
@@ -259,6 +261,6 @@ ComfyUI/
 ## 相关链接
 
 - 工作流体验地址：[https://www.runninghub.cn/post/2014536001888198657/inviteCode=rh-v1127](https://www.runninghub.cn/post/2014536001888198657/inviteCode=rh-v1127)
-- 推荐ComfyUI云平台：[https://www.runninghub.cn/user-center/1887871050510716930/webapp?inviteCode=rh-v1127](https://www.runninghub.cn/user-center/1887871050510716930/webapp?inviteCode=rh-v1127)
-- 已注册还未绑定邀请码可绑定邀请码：rh-v1127 赠送1000RH币
-- 资源下载：[https://pan.quark.cn/s/a56c5a6ec9c2](https://pan.quark.cn/s/a56c5a6ec9c2)
+- 推荐ComfyUI云平台，通过这个地址注册送1000点算力：[https://www.runninghub.cn/user-center/1887871050510716930/webapp?inviteCode=rh-v1127](https://www.runninghub.cn/user-center/1887871050510716930/webapp?inviteCode=rh-v1127)
+- 已注册还未绑定邀请码可绑定邀请码：rh-v1127 赠送1000点算力
+- ComfyUI资源分享：[https://pan.quark.cn/s/a56c5a6ec9c2](https://pan.quark.cn/s/a56c5a6ec9c2)
