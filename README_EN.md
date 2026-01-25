@@ -13,8 +13,11 @@ ComfyUI custom nodes integrating Qwen3-TTS for voice design, voice clone, and cu
 ## Features
 
 - 🎤 **Voice Design**: Generate custom voices from text prompts
-- 🎭 **Voice Clone**: Clone a voice from reference audio
+- 🎭 **Voice Clone**: Clone a voice from reference audio and output a role preset
 - 🎨 **Custom Voice**: Use preset speakers or custom prompts
+- 🧩 **Role Presets**: Save, load, and batch input role presets
+- 🗣️ **Multi-speaker Dialogue**: Role mapping and auto .pt loading
+- 🧰 **Prompt Splitter**: Six prompt inputs with six outputs
 - 🌍 **Multi-language**: Chinese, English, Japanese, Korean, German, French, Russian, Portuguese, Spanish, Italian
 - ⚡ **GPU/CPU**: CUDA acceleration and CPU mode
 - 🎯 **Precision**: FP16 and FP32
@@ -107,6 +110,10 @@ Inputs:
 - Seed (optional)
 - Post-generate control (optional)
 
+Outputs:
+- Audio
+- Role Preset
+
 ### 4. Qwen3 TTS Custom Voice
 
 Use preset speakers or custom prompts.
@@ -121,6 +128,65 @@ Inputs:
 - Max new tokens (optional)
 - Seed (optional)
 - Post-generate control (optional)
+
+### 5. Qwen3 TTS Role Preset Save
+
+Save a role preset to a .pt file named by role name.
+
+Inputs:
+- Role Preset
+- Role Name
+- Save Directory (optional)
+
+Outputs:
+- File Path
+- Role Preset (includes role name)
+
+### 6. Qwen3 TTS Role Preset Select
+
+Load a .pt role preset and extract role name (from file content or file name).
+
+Inputs:
+- Preset File
+- Manual File Name (optional)
+
+Outputs:
+- Role Preset (includes role name)
+
+### 7. Qwen3 TTS Role Preset Input
+
+Batch 6 role presets at once. Chain nodes for more.
+
+Inputs:
+- Existing Role Presets (optional)
+- Role Preset 1-6
+
+Outputs:
+- Role Presets
+
+### 8. Qwen3 TTS Dialogue Synthesis
+
+Generate multi-speaker dialogue from lines like “Role: Text”.
+
+Inputs:
+- Model
+- Dialogue Text
+- Role Presets (optional)
+- Role Mapping (optional): one per line, `role=file`
+- Language (optional)
+
+Output:
+- Audio
+
+### 9. Qwen3 TTS Prompts
+
+Six prompt inputs with six outputs.
+
+Inputs:
+- Prompt 1-6
+
+Outputs:
+- Prompt 1-6
 
 ## Notes
 
@@ -146,6 +212,12 @@ Inputs:
 See the original project license.
 
 ## Changelog
+
+### v1.3.0
+- Added Dialogue Synthesis and Role Preset Input nodes
+- Role Preset Save uses role name as filename and outputs role name info
+- Voice Clone outputs role presets
+- Added six-prompt node
 
 ### v1.2.0
 - Added seed and post-generate control options
