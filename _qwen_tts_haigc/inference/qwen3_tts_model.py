@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import base64
+import logging
 import io
 import urllib.request
 from dataclasses import dataclass
@@ -27,6 +28,8 @@ import torch
 from transformers import AutoConfig, AutoModel, AutoProcessor
 
 from ..core.models import Qwen3TTSConfig, Qwen3TTSForConditionalGeneration, Qwen3TTSProcessor
+
+logger = logging.getLogger(__name__)
 
 AudioLike = Union[
     str,                     # wav path, URL, base64
@@ -420,12 +423,19 @@ class Qwen3TTSModel:
         ref_text_list = self._ensure_list(ref_text) if isinstance(ref_text, list) else ([ref_text] * len(ref_audio_list))
         xvec_list = self._ensure_list(x_vector_only_mode) if isinstance(x_vector_only_mode, list) else ([x_vector_only_mode] * len(ref_audio_list))
 
+        logger.debug(f"[Qwen3TTS] create_voice_clone_prompt: ref_audio_list len={len(ref_audio_list)}, ref_text_list len={len(ref_text_list)}, xvec_list len={len(xvec_list)}")
+
         if len(ref_text_list) != len(ref_audio_list) or len(xvec_list) != len(ref_audio_list):
             raise ValueError(
                 f"Batch size mismatch: ref_audio={len(ref_audio_list)}, ref_text={len(ref_text_list)}, x_vector_only_mode={len(xvec_list)}"
             )
 
         normalized = self._normalize_audio_inputs(ref_audio_list)
+        logger.debug(f"[Qwen3TTS] create_voice_clone_prompt: normalized audio count={len(normalized)}")
+
+        if len(normalized) == 0:
+            logger.warning("[Qwen3TTS] create_voice_clone_prompt: normalized audio is empty!")
+            return []
 
         ref_wavs_for_code: List[np.ndarray] = []
         ref_sr_for_code: List[int] = []
@@ -453,8 +463,29 @@ class Qwen3TTSModel:
                                            orig_sr=int(sr), 
                                            target_sr=self.model.speaker_encoder_sample_rate)
 
-            spk_emb = self.model.extract_speaker_embedding(audio=wav_resample,
-                                                           sr=self.model.speaker_encoder_sample_rate)
+            # Check if audio is long enough for feature extraction
+            min_audio_samples = self.model.speaker_encoder_sample_rate * 0.5  # Minimum 0.5 seconds
+            if len(wav_resample) < min_audio_samples:
+                raise ValueError(
+                    f"Reference audio is too short after resampling ({len(wav_resample)/self.model.speaker_encoder_sample_rate:.2f}s). "
+                    f"Minimum required: {min_audio_samples/self.model.speaker_encoder_sample_rate:.2f}s. "
+                    "Please use audio with at least 1-2 seconds of clear speech."
+                )
+
+            try:
+                spk_emb = self.model.extract_speaker_embedding(audio=wav_resample,
+                                                               sr=self.model.speaker_encoder_sample_rate)
+                if spk_emb is None:
+                    raise ValueError("Speaker embedding extraction returned None.")
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to extract speaker embedding from reference audio (sample {i}): {e}\n"
+                    "This usually happens when:\n"
+                    "1. Audio contains too much silence or noise\n"
+                    "2. Audio quality is too low\n"
+                    "3. Audio content is not clear speech\n"
+                    "Please try using a different audio clip with clear speech."
+                ) from e
 
             items.append(
                 VoiceClonePromptItem(
