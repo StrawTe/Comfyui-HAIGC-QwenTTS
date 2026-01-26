@@ -498,12 +498,29 @@ class Qwen3TTSModel:
             )
         return items
 
-    def _prompt_items_to_voice_clone_prompt(self, items: List[VoiceClonePromptItem]) -> Dict[str, Any]:
+    def _prompt_items_to_voice_clone_prompt(self, items: List[Union[VoiceClonePromptItem, Dict[str, Any]]]) -> Dict[str, Any]:
+        ref_code = []
+        ref_spk_embedding = []
+        x_vector_only_mode = []
+        icl_mode = []
+        
+        for it in items:
+            if isinstance(it, dict):
+                ref_code.append(it.get("ref_code"))
+                ref_spk_embedding.append(it.get("ref_spk_embedding"))
+                x_vector_only_mode.append(it.get("x_vector_only_mode"))
+                icl_mode.append(it.get("icl_mode"))
+            else:
+                ref_code.append(it.ref_code)
+                ref_spk_embedding.append(it.ref_spk_embedding)
+                x_vector_only_mode.append(it.x_vector_only_mode)
+                icl_mode.append(it.icl_mode)
+
         return dict(
-            ref_code=[it.ref_code for it in items],
-            ref_spk_embedding=[it.ref_spk_embedding for it in items],
-            x_vector_only_mode=[it.x_vector_only_mode for it in items],
-            icl_mode=[it.icl_mode for it in items],
+            ref_code=ref_code,
+            ref_spk_embedding=ref_spk_embedding,
+            x_vector_only_mode=x_vector_only_mode,
+            icl_mode=icl_mode,
         )
 
     # voice clone model
@@ -621,7 +638,7 @@ class Qwen3TTSModel:
                 if len(prompt_items) != len(texts):
                     raise ValueError(f"Batch size mismatch: prompt={len(prompt_items)}, text={len(texts)}")
                 voice_clone_prompt_dict = self._prompt_items_to_voice_clone_prompt(prompt_items)
-                ref_texts_for_ids = [it.ref_text for it in prompt_items]
+                ref_texts_for_ids = [it.get("ref_text") if isinstance(it, dict) else it.ref_text for it in prompt_items]
             else:
                 voice_clone_prompt_dict = voice_clone_prompt
                 ref_texts_for_ids = None
