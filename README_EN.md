@@ -92,8 +92,8 @@ Inputs:
 - Language (optional)
 - Auto unload model (optional)
 - Max new tokens (optional)
-- Seed (optional)
-- Post-generate control (optional)
+- `随机种子` (Seed) (optional)
+- `生成后控制` (Post-generate control) (optional): randomize / fixed / increment / decrement
 
 ### 3. Qwen3 TTS Voice Clone
 
@@ -101,14 +101,14 @@ Clone a voice from reference audio.
 
 Inputs:
 - Model
-- Text
 - Reference audio
+- Text
 - Reference text (optional)
 - Language (optional)
 - Auto unload model (optional)
 - Max new tokens (optional)
-- Seed (optional)
-- Post-generate control (optional)
+- `随机种子` (Seed) (optional)
+- `生成后控制` (Post-generate control) (optional): randomize / fixed / increment / decrement
 
 Outputs:
 - Audio
@@ -126,8 +126,7 @@ Inputs:
 - Prompt (optional, overrides preset prompt)
 - Auto unload model (optional)
 - Max new tokens (optional)
-- Seed (optional)
-- Post-generate control (optional)
+- `随机种子` (Seed) (optional)
 
 ### 5. Qwen3 TTS Role Preset Save
 
@@ -177,8 +176,7 @@ Inputs:
 - `Enable Pause Control` (optional): Enable/disable pause handling (default: True)
 - Auto unload model (optional)
 - Max new tokens (optional)
-- Seed (optional)
-- Post-generate control (optional)
+- `随机种子` (Seed) (optional)
 
 **Pause Control:**
 - Insert `=Ns` in the text to add silence (N is seconds).
@@ -235,6 +233,12 @@ Outputs:
 See the original project license.
 
 ## Changelog
+
+### v1.6.0
+- Optimized parameter names to use Chinese (e.g., `随机种子` for Seed)
+- Added `生成后控制` (Post-generate control) to Voice Clone and Voice Design nodes (supports Chinese options)
+- Optimized Voice Clone parameter order
+- Fixed some runtime errors
 
 ### v1.5.0
 - Added silence/pause insertion support in Dialogue Synthesis (syntax: `=2s`)
