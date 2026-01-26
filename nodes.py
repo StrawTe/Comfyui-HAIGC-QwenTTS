@@ -502,12 +502,13 @@ class Qwen3TTSVoiceDesign:
                 "模型": ("QWEN3_TTS_MODEL",),
                 "文本": ("STRING", {"multiline": True, "default": "Hello, this is a test."}),
                 "提示词": ("STRING", {"multiline": True, "default": "A young female voice, energetic and bright."}),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-            },
-            "optional": {
                 "语言": (LANGUAGE_OPTIONS, {"default": "自动"}),
                 "自动卸载模型": ("BOOLEAN", {"default": False, "label_on": "是", "label_off": "否"}),
                 "最大生成Token数": ("INT", {"default": 2048, "min": 64, "max": 8192, "step": 64, "display": "number", "tooltip": "限制生成的最大长度。默认2048，通常足够。设为0则根据文本自动调整（不限制）。"}),
+                "随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "生成后控制": (["randomize", "fixed", "increment", "decrement", "随机", "固定", "增加", "减少"], {"default": "randomize"}),
+            },
+            "optional": {
                 "批量模式": ("BOOLEAN", {"default": False}),
                 "top_p": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "display": "number"}),
                 "top_k": ("INT", {"default": 50, "min": 1, "max": 100, "step": 1, "display": "number"}),
@@ -522,12 +523,13 @@ class Qwen3TTSVoiceDesign:
     CATEGORY = "Qwen3TTS"
     DESCRIPTION = "使用声音设计（Voice Design）生成语音，基于提示词创建声音。\n⚠️ 需要加载带有 'VoiceDesign' 的模型（如 Qwen3-TTS-12Hz-1.7B-VoiceDesign）。"
 
-    def generate(self, 模型, 文本, 提示词, 语言, seed=0, 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05):
+    def generate(self, 模型, 文本, 提示词, 语言, 随机种子=0, 生成后控制="randomize", 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05):
         model = 模型
         text = normalize_text_input(文本, 批量模式)
         instruct = 提示词
         language = 语言
         max_new_tokens = 最大生成Token数
+        seed = 随机种子
         
         language = LANGUAGE_MAP.get(language, language)
         if language == "auto":
@@ -626,15 +628,16 @@ class Qwen3TTSVoiceClone:
         return {
             "required": {
                 "模型": ("QWEN3_TTS_MODEL",),
-                "文本": ("STRING", {"multiline": True, "default": "Hello, I am cloning this voice."}),
                 "参考音频": ("AUDIO",),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-            },
-            "optional": {
+                "文本": ("STRING", {"multiline": True, "default": "Hello, I am cloning this voice."}),
                 "参考文本": ("STRING", {"multiline": True, "default": ""}),
                 "语言": (LANGUAGE_OPTIONS, {"default": "自动"}),
                 "自动卸载模型": ("BOOLEAN", {"default": False, "label_on": "是", "label_off": "否"}),
                 "最大生成Token数": ("INT", {"default": 2048, "min": 64, "max": 8192, "step": 64, "display": "number", "tooltip": "限制生成的最大长度。默认2048，通常足够。设为0则根据文本自动调整（不限制）。"}),
+                "随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "生成后控制": (["randomize", "fixed", "increment", "decrement", "随机", "固定", "增加", "减少"], {"default": "randomize"}),
+            },
+            "optional": {
                 "批量模式": ("BOOLEAN", {"default": False}),
                 "top_p": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "display": "number"}),
                 "top_k": ("INT", {"default": 50, "min": 1, "max": 100, "step": 1, "display": "number"}),
@@ -649,13 +652,14 @@ class Qwen3TTSVoiceClone:
     CATEGORY = "Qwen3TTS"
     DESCRIPTION = "使用声音克隆（Voice Clone）生成语音，基于参考音频。\n⚠️ 需要加载带有 'Base' 的模型（如 Qwen3-TTS-12Hz-1.7B-Base）。"
 
-    def generate(self, 模型, 文本, 参考音频, 参考文本, 语言, seed=0, 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05):
+    def generate(self, 模型, 文本, 参考音频, 参考文本, 语言, 随机种子=0, 生成后控制="randomize", 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05):
         model = 模型
         text = normalize_text_input(文本, 批量模式)
         reference_audio = 参考音频
         reference_text = 参考文本
         language = 语言
         max_new_tokens = 最大生成Token数
+        seed = 随机种子
         
         language = LANGUAGE_MAP.get(language, language)
         if language == "auto":
@@ -1052,7 +1056,7 @@ class Qwen3TTSDialogueSynthesis:
             "required": {
                 "模型": ("QWEN3_TTS_MODEL",),
                 "对白文本": ("STRING", {"multiline": True, "default": "旁白:这里是第一句\n御姐:这里是第二句\n小林:这里是第三句"}),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
                 "语言": (LANGUAGE_OPTIONS, {"default": "自动"}),
@@ -1074,8 +1078,9 @@ class Qwen3TTSDialogueSynthesis:
     CATEGORY = "Qwen3TTS"
     DESCRIPTION = "输入多角色对白文本，自动将角色名映射为同名 .pt 预设并合成整段音频，可用“角色名=文件名”覆盖，且优先使用角色预设输入端口。支持使用 '=Ns' (如 =2s) 添加静音停顿。"
 
-    def generate(self, 模型, 对白文本, 语言, 角色映射=None, 角色预设=None, 启用停顿控制=True, seed=0, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05, **kwargs):
+    def generate(self, 模型, 对白文本, 语言, 角色映射=None, 角色预设=None, 启用停顿控制=True, 随机种子=0, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05, **kwargs):
         model = 模型
+        seed = 随机种子
         dialogue_text = (对白文本 or "").strip()
         mapping_value = 角色映射
         if not mapping_value:
@@ -1315,7 +1320,7 @@ class Qwen3TTSVoiceCloneFromPrompt:
                 "模型": ("QWEN3_TTS_MODEL",),
                 "文本": ("STRING", {"multiline": True, "default": "Hello, I am cloning this voice."}),
                 "角色预设": ("QWEN3_TTS_VOICE_PROMPT",),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
                 "语言": (LANGUAGE_OPTIONS, {"default": "自动"}),
@@ -1335,12 +1340,13 @@ class Qwen3TTSVoiceCloneFromPrompt:
     CATEGORY = "Qwen3TTS"
     DESCRIPTION = "使用可复用语音克隆提示生成语音，无需重复提取参考特征。"
 
-    def generate(self, 模型, 文本, 角色预设, 语言, seed=0, 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05):
+    def generate(self, 模型, 文本, 角色预设, 语言, 随机种子=0, 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05):
         model = 模型
         text = normalize_text_input(文本, 批量模式)
         voice_clone_prompt = 角色预设
         language = 语言
         max_new_tokens = 最大生成Token数
+        seed = 随机种子
         
         language = LANGUAGE_MAP.get(language, language)
         if language == "auto":
@@ -1441,7 +1447,7 @@ class Qwen3TTSCustomVoice:
                 "提示词": ("STRING", {"multiline": True, "default": ""}),
                 "自动卸载模型": ("BOOLEAN", {"default": False, "label_on": "是", "label_off": "否"}),
                 "最大生成Token数": ("INT", {"default": 2048, "min": 64, "max": 8192, "step": 64, "display": "number", "tooltip": "限制生成的最大长度。默认2048，通常足够。设为0则根据文本自动调整（不限制）。"}),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "批量模式": ("BOOLEAN", {"default": False}),
             }
         }
@@ -1452,13 +1458,14 @@ class Qwen3TTSCustomVoice:
     CATEGORY = "Qwen3TTS"
     DESCRIPTION = "使用自定义声音（Custom Voice）生成语音，支持预设说话人。\n⚠️ 需要加载带有 'CustomVoice' 的模型（如 Qwen3-TTS-12Hz-1.7B-CustomVoice）。"
 
-    def generate(self, 模型, 文本, 预设说话人, 语言, 提示词, seed=0, 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048):
+    def generate(self, 模型, 文本, 预设说话人, 语言, 提示词, 随机种子=0, 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048):
         model = 模型
         text = normalize_text_input(文本, 批量模式)
         speaker = 预设说话人
         language = 语言
         instruct = 提示词
         max_new_tokens = 最大生成Token数
+        seed = 随机种子
         
         language = LANGUAGE_MAP.get(language, language)
         if language == "auto":
