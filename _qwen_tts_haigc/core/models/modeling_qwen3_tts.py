@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 import huggingface_hub
+import numpy as np
 import torch
 from huggingface_hub import snapshot_download
 from librosa.filters import mel as librosa_mel_fn
@@ -1941,9 +1942,23 @@ class Qwen3TTSForConditionalGeneration(Qwen3TTSPreTrainedModel, GenerationMixin)
     
     @torch.inference_mode()
     def extract_speaker_embedding(self, audio, sr):
-        assert sr == 24000, "Only support 24kHz audio"
+        # Validate input
+        if sr != 24000:
+            raise ValueError(f"Speaker encoder requires 24kHz audio, but got {sr}Hz. Please resample audio to 24kHz first.")
+        
+        # Validate audio data
+        if audio is None or (isinstance(audio, np.ndarray) and len(audio) == 0):
+            raise ValueError("Audio data is empty or None.")
+        
+        # Convert to tensor and check for NaN/Inf values
+        audio_tensor = torch.from_numpy(audio).unsqueeze(0)
+        if torch.isnan(audio_tensor).any() or torch.isinf(audio_tensor).any():
+            raise ValueError("Audio data contains NaN or Inf values.")
+        
+        logger.debug(f"[Qwen3TTS] extract_speaker_embedding: audio shape={audio.shape}, sr={sr}")
+        
         mels = mel_spectrogram(
-            torch.from_numpy(audio).unsqueeze(0), 
+            audio_tensor, 
             n_fft=1024, 
             num_mels=128, 
             sampling_rate=24000,
@@ -1952,7 +1967,23 @@ class Qwen3TTSForConditionalGeneration(Qwen3TTSPreTrainedModel, GenerationMixin)
             fmin=0, 
             fmax=12000
         ).transpose(1, 2)
+        
+        # Check if mel spectrogram is valid
+        if mels.size(1) < 1:  # Not enough time frames
+            raise ValueError(f"Mel spectrogram has insufficient time frames ({mels.size(1)}). Audio may be too short.")
+        
+        logger.debug(f"[Qwen3TTS] extract_speaker_embedding: mel shape={mels.shape}")
+        
         speaker_embedding = self.speaker_encoder(mels.to(self.device).to(self.dtype))[0]
+        
+        logger.debug(f"[Qwen3TTS] extract_speaker_embedding: embedding shape={speaker_embedding.shape}, is_nan={torch.isnan(speaker_embedding).any().item()}, is_inf={torch.isinf(speaker_embedding).any().item()}")
+        
+        # Validate output
+        if speaker_embedding is None:
+            raise RuntimeError("Speaker encoder returned None embedding.")
+        if torch.isnan(speaker_embedding).any() or torch.isinf(speaker_embedding).any():
+            raise RuntimeError("Speaker embedding contains NaN or Inf values.")
+        
         return speaker_embedding
     
     @torch.inference_mode()
