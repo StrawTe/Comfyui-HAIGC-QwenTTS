@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import re
 import torch
 import random
 import numpy as np
@@ -215,12 +216,22 @@ def _normalize_prompt_dict(prompt_dict):
         else:
             norm_ref_spk.append(torch.tensor(v))
 
-    return {
+    final_dict = {
         "ref_code": norm_ref_code,
         "ref_spk_embedding": norm_ref_spk,
         "x_vector_only_mode": [bool(x) for x in xvec_list],
         "icl_mode": [bool(x) for x in icl_list],
     }
+
+    # If single item list, unwrap it to match model expectations for single-ref per sample
+    # The model expects a list of Tensors (one per sample), not a list of Lists of Tensors.
+    if len(norm_ref_spk) == 1:
+        final_dict["ref_code"] = final_dict["ref_code"][0]
+        final_dict["ref_spk_embedding"] = final_dict["ref_spk_embedding"][0]
+        final_dict["x_vector_only_mode"] = final_dict["x_vector_only_mode"][0]
+        final_dict["icl_mode"] = final_dict["icl_mode"][0]
+
+    return final_dict
 
 def _extract_role_name_from_payload(payload, fallback_name=""):
     if isinstance(payload, dict):
@@ -1047,6 +1058,7 @@ class Qwen3TTSDialogueSynthesis:
                 "语言": (LANGUAGE_OPTIONS, {"default": "自动"}),
                 "角色映射(可选)": ("STRING", {"multiline": True, "default": ""}),
                 "角色预设": ("QWEN3_TTS_ROLE_PRESETS",),
+                "启用停顿控制": ("BOOLEAN", {"default": True, "label_on": "开启", "label_off": "关闭"}),
                 "自动卸载模型": ("BOOLEAN", {"default": False, "label_on": "是", "label_off": "否"}),
                 "最大生成Token数": ("INT", {"default": 2048, "min": 64, "max": 8192, "step": 64, "display": "number", "tooltip": "限制生成的最大长度。默认2048，通常足够。设为0则根据文本自动调整（不限制）。"}),
                 "top_p": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "display": "number"}),
@@ -1060,9 +1072,9 @@ class Qwen3TTSDialogueSynthesis:
     RETURN_NAMES = ("音频",)
     FUNCTION = "generate"
     CATEGORY = "Qwen3TTS"
-    DESCRIPTION = "输入多角色对白文本，自动将角色名映射为同名 .pt 预设并合成整段音频，可用“角色名=文件名”覆盖，且优先使用角色预设输入端口。"
+    DESCRIPTION = "输入多角色对白文本，自动将角色名映射为同名 .pt 预设并合成整段音频，可用“角色名=文件名”覆盖，且优先使用角色预设输入端口。支持使用 '=Ns' (如 =2s) 添加静音停顿。"
 
-    def generate(self, 模型, 对白文本, 语言, 角色映射=None, 角色预设=None, seed=0, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05, **kwargs):
+    def generate(self, 模型, 对白文本, 语言, 角色映射=None, 角色预设=None, 启用停顿控制=True, seed=0, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05, **kwargs):
         model = 模型
         dialogue_text = (对白文本 or "").strip()
         mapping_value = 角色映射
@@ -1163,17 +1175,101 @@ class Qwen3TTSDialogueSynthesis:
         try:
             wavs_all = []
             sample_rate = None
+            
+            # Default sample rate if not yet known (Qwen3 usually 24k, but we try to get from first gen)
+            # If the very first segment is silence, we might need a default.
+            # But usually we can expect at least one speech segment.
+            # If everything is silence, we default to 24000.
+            DEFAULT_SR = 24000
+
+            # 1. Collect all segments to process
+            all_parts = []
+            
             for role, text in segments:
-                prompt = role_to_prompt[role]
+                if 启用停顿控制:
+                    pattern = r'=(\d+(?:\.\d+)?)s'
+                    parts = re.split(pattern, text)
+                    idx = 0
+                    while idx < len(parts):
+                        part_text = parts[idx]
+                        if part_text and part_text.strip():
+                            all_parts.append({
+                                "type": "text", 
+                                "content": part_text.strip(),
+                                "role": role
+                            })
+                        
+                        if idx + 1 < len(parts):
+                            duration_str = parts[idx+1]
+                            try:
+                                duration = float(duration_str)
+                                all_parts.append({"type": "silence", "duration": duration})
+                            except ValueError:
+                                pass
+                            idx += 2
+                        else:
+                            idx += 1
+                else:
+                    if text and text.strip():
+                        all_parts.append({
+                            "type": "text",
+                            "content": text.strip(),
+                            "role": role
+                        })
+
+            # 2. Prepare batch for text segments
+            batch_texts = []
+            batch_prompts = []
+            batch_indices = [] # to map back to all_parts
+            
+            for i, part in enumerate(all_parts):
+                if part["type"] == "text":
+                    batch_texts.append(part["content"])
+                    batch_prompts.append(role_to_prompt[part["role"]])
+                    batch_indices.append(i)
+
+            # 3. Batch generate
+            if batch_texts:
+                print(f"Batch generating {len(batch_texts)} segments...")
+                # We can reuse generate_voice_clone with lists
+                # It returns a list of numpy arrays (wavs)
+                
+                # Note: Qwen3TTSModel.generate_voice_clone handles list inputs
+                # voice_clone_prompt can also be a list of prompts corresponding to texts
+                
                 wavs, sr = model.generate_voice_clone(
-                    text=text,
+                    text=batch_texts,
                     language=language,
-                    voice_clone_prompt=prompt,
+                    voice_clone_prompt=batch_prompts,
                     **kwargs
                 )
+                
                 if sample_rate is None:
                     sample_rate = sr
-                wavs_all.append(wavs[0])
+                
+                # Map back to all_parts
+                for i, wav in enumerate(wavs):
+                    original_idx = batch_indices[i]
+                    all_parts[original_idx]["wav"] = wav
+            
+            # 4. Reconstruct full audio
+            wavs_all = []
+            current_sr = sample_rate if sample_rate is not None else DEFAULT_SR
+            
+            for part in all_parts:
+                if part["type"] == "text":
+                    if "wav" in part:
+                        wavs_all.append(part["wav"])
+                elif part["type"] == "silence":
+                    duration = part["duration"]
+                    if duration <= 0:
+                        continue
+                    num_samples = int(duration * current_sr)
+                    if num_samples > 0:
+                        silence_wav = np.zeros(num_samples, dtype=np.float32)
+                        wavs_all.append(silence_wav)
+
+
         finally:
             if cuda_rng_state is not None:
                 torch.cuda.set_rng_state_all(cuda_rng_state)
@@ -1190,7 +1286,14 @@ class Qwen3TTSDialogueSynthesis:
                 gc.collect()
 
         if not wavs_all:
-            raise ValueError("【Qwen3TTS Error】对白文本为空或格式不正确。")
+            # If user only input silence, we might have silence segments but no text segments generated?
+            # If so, wavs_all has silence arrays.
+            # But if dialogue_text was empty, we raised error earlier.
+            # If dialogue_text was "=2s", we have silence.
+            pass
+
+        if not wavs_all:
+             raise ValueError("【Qwen3TTS Error】未能生成任何音频。")
 
         full_audio = np.concatenate(wavs_all)
         tensor_audio = torch.from_numpy(full_audio).float()
@@ -1451,6 +1554,69 @@ class Qwen3TTSCustomVoice:
                 
         return ({"waveform": tensor_audio, "sample_rate": sample_rate},)
 
+# Voice description constants
+AGE_GENDER_DESC = [
+    "不选择",
+    "女童(萝莉)", "男童(正太)",
+    "少女", "少年",
+    "青年女(御姐)", "青年男",
+    "中年女(大妈)", "中年男(大叔)",
+    "老年女", "老年男"
+]
+
+TEXTURE_DESC = [
+    "不选择",
+    "甜美", "清脆", "沙哑", "磁性", "清冷", "温暖", "温柔",
+    "慵懒", "霸气", "妩媚", "沧桑", "威严", "慈祥",
+    "颗粒感", "丝绒感", "空气感",
+    "软萌", "傲娇", "奶气", "热血", "知性", "油腻", "歇斯底里", "机械感"
+]
+
+class Qwen3TTSVoiceDescription:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "基础音色": (AGE_GENDER_DESC, {"default": "不选择"}),
+                "质感细节1": (TEXTURE_DESC, {"default": "不选择"}),
+                "质感细节2": (TEXTURE_DESC, {"default": "不选择"}),
+                "质感细节3": (TEXTURE_DESC, {"default": "不选择"}),
+            },
+            "optional": {
+                "上一个提示词": ("STRING", {"forceInput": True}),
+                "自定义描述": ("STRING", {"multiline": True, "default": ""}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("提示词",)
+    FUNCTION = "process"
+    CATEGORY = "Qwen3TTS"
+    DESCRIPTION = "构建语音音色描述提示词，支持无限串联组合。"
+
+    def process(self, 基础音色, 质感细节1, 质感细节2, 质感细节3, 上一个提示词=None, 自定义描述=""):
+        parts = []
+        if 上一个提示词 and 上一个提示词.strip():
+            parts.append(上一个提示词.strip())
+        
+        current_parts = []
+        if 基础音色 and 基础音色 != "不选择":
+            current_parts.append(基础音色)
+        
+        for tex in [质感细节1, 质感细节2, 质感细节3]:
+            if tex and tex != "不选择":
+                current_parts.append(tex)
+                
+        if 自定义描述 and 自定义描述.strip():
+            current_parts.append(自定义描述.strip())
+            
+        if current_parts:
+            combined_current = " ".join(current_parts)
+            parts.append(combined_current)
+            
+        final_prompt = " ".join(parts)
+        return (final_prompt,)
+
 NODE_CLASS_MAPPINGS = {
     "Qwen3TTSModelLoader": Qwen3TTSModelLoader,
     "Qwen3TTSVoiceDesign": Qwen3TTSVoiceDesign,
@@ -1462,6 +1628,7 @@ NODE_CLASS_MAPPINGS = {
     "Qwen3TTSDialogueSynthesis": Qwen3TTSDialogueSynthesis,
     "Qwen3TTSVoiceCloneFromPrompt": Qwen3TTSVoiceCloneFromPrompt,
     "Qwen3TTSCustomVoice": Qwen3TTSCustomVoice,
+    "Qwen3TTSVoiceDescription": Qwen3TTSVoiceDescription,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -1475,4 +1642,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Qwen3TTSDialogueSynthesis": "Qwen3 TTS 多角色对话合成",
     "Qwen3TTSVoiceCloneFromPrompt": "Qwen3 TTS 语音克隆(角色预设)",
     "Qwen3TTSCustomVoice": "Qwen3 TTS 自定义声音",
+    "Qwen3TTSVoiceDescription": "Qwen3 TTS 音色描述",
 }

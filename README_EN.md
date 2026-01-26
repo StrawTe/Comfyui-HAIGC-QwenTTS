@@ -174,6 +174,16 @@ Inputs:
 - Role Presets (optional)
 - Role Mapping (optional): one per line, `role=file`
 - Language (optional)
+- `Enable Pause Control` (optional): Enable/disable pause handling (default: True)
+- Auto unload model (optional)
+- Max new tokens (optional)
+- Seed (optional)
+- Post-generate control (optional)
+
+**Pause Control:**
+- Insert `=Ns` in the text to add silence (N is seconds).
+- Example: `Role: Hello, =1s I am Role. =2.5s Nice to meet you.`
+- Note: Pause tag must be `=` followed by number and `s`.
 
 Output:
 - Audio
@@ -187,6 +197,19 @@ Inputs:
 
 Outputs:
 - Prompt 1-6
+
+### 10. Qwen3 TTS Voice Description
+
+Construct voice description prompts with infinite chaining support.
+
+Inputs:
+- `Base Voice`: Select age and gender (e.g., Loli, Shota, Young Lady, Uncle)
+- `Texture 1-3`: Select voice texture (e.g., Sweet, Husky, Magnetic, Lazy)
+- `Previous Prompt` (optional): Chain from previous node
+- `Custom Description` (optional): Manual text input
+
+Outputs:
+- `Prompt`: Combined prompt string
 
 ## Notes
 
@@ -212,6 +235,14 @@ Outputs:
 See the original project license.
 
 ## Changelog
+
+### v1.5.0
+- Added silence/pause insertion support in Dialogue Synthesis (syntax: `=2s`)
+- Added pause control toggle
+
+### v1.4.0
+- Added "Qwen3 TTS Voice Description" node for visual prompt construction
+- Includes rich options for age, gender, and texture
 
 ### v1.3.0
 - Added Dialogue Synthesis and Role Preset Input nodes
