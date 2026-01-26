@@ -506,7 +506,7 @@ class Qwen3TTSVoiceDesign:
                 "自动卸载模型": ("BOOLEAN", {"default": False, "label_on": "是", "label_off": "否"}),
                 "最大生成Token数": ("INT", {"default": 2048, "min": 64, "max": 8192, "step": 64, "display": "number", "tooltip": "限制生成的最大长度。默认2048，通常足够。设为0则根据文本自动调整（不限制）。"}),
                 "随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-                "生成后控制": (["randomize", "fixed", "increment", "decrement", "随机", "固定", "增加", "减少"], {"default": "randomize"}),
+                "生成后控制": (["随机", "固定", "增加", "减少"], {"default": "随机"}),
             },
             "optional": {
                 "批量模式": ("BOOLEAN", {"default": False}),
@@ -523,7 +523,7 @@ class Qwen3TTSVoiceDesign:
     CATEGORY = "Qwen3TTS"
     DESCRIPTION = "使用声音设计（Voice Design）生成语音，基于提示词创建声音。\n⚠️ 需要加载带有 'VoiceDesign' 的模型（如 Qwen3-TTS-12Hz-1.7B-VoiceDesign）。"
 
-    def generate(self, 模型, 文本, 提示词, 语言, 随机种子=0, 生成后控制="randomize", 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05):
+    def generate(self, 模型, 文本, 提示词, 语言, 随机种子=0, 生成后控制="随机", 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05):
         model = 模型
         text = normalize_text_input(文本, 批量模式)
         instruct = 提示词
@@ -635,7 +635,7 @@ class Qwen3TTSVoiceClone:
                 "自动卸载模型": ("BOOLEAN", {"default": False, "label_on": "是", "label_off": "否"}),
                 "最大生成Token数": ("INT", {"default": 2048, "min": 64, "max": 8192, "step": 64, "display": "number", "tooltip": "限制生成的最大长度。默认2048，通常足够。设为0则根据文本自动调整（不限制）。"}),
                 "随机种子": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-                "生成后控制": (["randomize", "fixed", "increment", "decrement", "随机", "固定", "增加", "减少"], {"default": "randomize"}),
+                "生成后控制": (["随机", "固定", "增加", "减少"], {"default": "随机"}),
             },
             "optional": {
                 "批量模式": ("BOOLEAN", {"default": False}),
@@ -652,7 +652,7 @@ class Qwen3TTSVoiceClone:
     CATEGORY = "Qwen3TTS"
     DESCRIPTION = "使用声音克隆（Voice Clone）生成语音，基于参考音频。\n⚠️ 需要加载带有 'Base' 的模型（如 Qwen3-TTS-12Hz-1.7B-Base）。"
 
-    def generate(self, 模型, 文本, 参考音频, 参考文本, 语言, 随机种子=0, 生成后控制="randomize", 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05):
+    def generate(self, 模型, 文本, 参考音频, 参考文本, 语言, 随机种子=0, 生成后控制="随机", 批量模式=False, 自动卸载模型=False, 最大生成Token数=2048, top_p=1.0, top_k=50, temperature=0.9, repetition_penalty=1.05):
         model = 模型
         text = normalize_text_input(文本, 批量模式)
         reference_audio = 参考音频
