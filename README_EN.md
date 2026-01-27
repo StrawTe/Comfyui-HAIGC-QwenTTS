@@ -1,5 +1,7 @@
 # ComfyUI HAIGC Qwen3TTS
 
+[中文](README.md)
+
 ComfyUI custom nodes integrating Qwen3-TTS for voice design, voice clone, and custom voice generation.
 
 ## Author
@@ -14,6 +16,7 @@ ComfyUI custom nodes integrating Qwen3-TTS for voice design, voice clone, and cu
 
 - 🎤 **Voice Design**: Generate custom voices from text prompts
 - 🎭 **Voice Clone**: Clone a voice from reference audio and output a role preset
+- 📦 **Batch Voice Clone**: Support 1-to-1 mapping of multiple audio clips to text
 - 🎨 **Custom Voice**: Use preset speakers or custom prompts
 - 🧩 **Role Presets**: Save, load, and batch input role presets
 - 🗣️ **Multi-speaker Dialogue**: Role mapping and auto .pt loading
@@ -89,6 +92,8 @@ Inputs:
 - Model
 - Text
 - Prompt
+- `Role Preset Mode`: Design / Local / Auto
+- `Local Preset File` (optional): Select local .pt file from dropdown
 - Language (optional)
 - Auto unload model (optional)
 - Max new tokens (optional)
@@ -209,6 +214,40 @@ Inputs:
 Outputs:
 - `Prompt`: Combined prompt string
 
+### 11. Qwen3 TTS Batch Voice Clone Input
+
+Input 6 pairs of reference audio and content, supporting chain extension. Outputs batch audio and formatted text to connect to the Master node.
+
+**Inputs:**
+- `Audio 1-6`: Reference audio inputs
+- `Content 1-6`: Corresponding text content
+- `Existing Batch Audio` (optional): For chaining
+- `Existing Batch Text` (optional): For chaining
+
+**Outputs:**
+- `Batch Audio`: Stacked audio tensor
+- `Formatted Text`: Processed text content (prefixes removed for 1:1 mapping)
+
+### 12. Qwen3 TTS Master
+
+Unified node integrating Voice Design, Clone, Custom Voice, and Dialogue. Supports auto model loading.
+
+**Inputs:**
+- `Text`: Input text (supports multiline, dialogue format)
+- `Mode`: Auto Dialogue / Voice Design / Voice Clone / Custom Voice
+- `Model` (optional): Auto or specific model
+- `Reference Audio` (optional): Connect batch audio or single audio
+- `Local Preset File` (optional): Select local preset for Voice Design
+- `Role Mapping` (optional): For dialogue mode
+- `Enable Advanced Sampling` (optional): Enable top_p, top_k, etc.
+- `Batch Save Role Presets` (optional): In dialogue mode, auto save all role presets
+- `top_p`, `top_k`, `temperature`, `repetition_penalty`: Advanced sampling parameters (require switch on)
+- Other parameters consistent with individual nodes
+
+**Outputs:**
+- `Audio`: Generated audio
+- `Role Preset`: Generated role preset (or batch presets dictionary in dialogue mode)
+
 ## Notes
 
 1. Use the correct model type for each node.
@@ -233,6 +272,22 @@ Outputs:
 See the original project license.
 
 ## Changelog
+
+### v1.8.0
+- **Master Node Upgrade**: Added `Enable Advanced Sampling` switch to control top_p, top_k, temperature, and repetition_penalty.
+- **Dialogue Enhancement**: Added `Batch Save Role Presets` option to Master node for one-click saving of all role presets.
+- **Save Node Update**: Role Preset Save node now supports batch preset input, automatically saving multiple files by role name.
+- **Progress Bar**: Added native ComfyUI progress bar support for all generation nodes.
+- **Parameter Alignment**: Standardized sampling parameter defaults and logic across all nodes.
+
+### v1.7.0
+- Added **Batch Voice Cloning** feature with 1-to-1 audio-text mapping
+- Added `Qwen3 TTS Batch Voice Clone Input` node (supports 6 inputs + chaining)
+- Added `Qwen3 TTS Master` node (unified interface with auto model loading)
+- Updated `Voice Design` node with local preset file dropdown
+- Fixed uniform voice issue in batch cloning (implemented 1:1 mapping)
+- Fixed random seed logic to align with ComfyUI standards
+- Fixed various node errors and compatibility issues
 
 ### v1.6.0
 - Optimized parameter names to use Chinese (e.g., `随机种子` for Seed)
