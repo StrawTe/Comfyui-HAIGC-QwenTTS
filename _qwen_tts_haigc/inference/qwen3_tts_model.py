@@ -344,7 +344,15 @@ class Qwen3TTSModel:
 
         def pick(name: str, user_val: Any) -> Any:
             if user_val is not None:
-                return user_val
+                # Treat any negative value (e.g. -1, -0.99) or effectively zero float as "use default"
+                # This supports both INT (-1) and FLOAT (0.0) as default triggers
+                is_neg = isinstance(user_val, (int, float)) and user_val < 0
+                is_zero_float = isinstance(user_val, float) and abs(user_val) < 1e-6
+                
+                if is_neg or is_zero_float:
+                    pass
+                else:
+                    return user_val
             if name in self.generate_defaults:
                 return self.generate_defaults[name]
             return hard_defaults[name]
@@ -506,10 +514,26 @@ class Qwen3TTSModel:
         
         for it in items:
             if isinstance(it, dict):
-                ref_code.append(it.get("ref_code"))
-                ref_spk_embedding.append(it.get("ref_spk_embedding"))
-                x_vector_only_mode.append(it.get("x_vector_only_mode"))
-                icl_mode.append(it.get("icl_mode"))
+                # Unwrap list values if they are singletons, as _normalize_prompt_dict wraps everything in lists
+                rc = it.get("ref_code")
+                if isinstance(rc, list) and len(rc) == 1:
+                    rc = rc[0]
+                ref_code.append(rc)
+
+                rse = it.get("ref_spk_embedding")
+                if isinstance(rse, list) and len(rse) == 1:
+                    rse = rse[0]
+                ref_spk_embedding.append(rse)
+
+                xom = it.get("x_vector_only_mode")
+                if isinstance(xom, list) and len(xom) == 1:
+                    xom = xom[0]
+                x_vector_only_mode.append(xom)
+
+                im = it.get("icl_mode")
+                if isinstance(im, list) and len(im) == 1:
+                    im = im[0]
+                icl_mode.append(im)
             else:
                 ref_code.append(it.ref_code)
                 ref_spk_embedding.append(it.ref_spk_embedding)
@@ -638,7 +662,17 @@ class Qwen3TTSModel:
                 if len(prompt_items) != len(texts):
                     raise ValueError(f"Batch size mismatch: prompt={len(prompt_items)}, text={len(texts)}")
                 voice_clone_prompt_dict = self._prompt_items_to_voice_clone_prompt(prompt_items)
-                ref_texts_for_ids = [it.get("ref_text") if isinstance(it, dict) else it.ref_text for it in prompt_items]
+                
+                # Unwrap ref_text if it is a list (from _normalize_prompt_dict)
+                ref_texts_for_ids = []
+                for it in prompt_items:
+                    if isinstance(it, dict):
+                        rt = it.get("ref_text")
+                        if isinstance(rt, list) and len(rt) == 1:
+                            rt = rt[0]
+                        ref_texts_for_ids.append(rt)
+                    else:
+                        ref_texts_for_ids.append(it.ref_text)
             else:
                 voice_clone_prompt_dict = voice_clone_prompt
                 ref_texts_for_ids = None
